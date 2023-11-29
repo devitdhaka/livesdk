@@ -1,0 +1,45 @@
+.str-video__call-stats {
+  background-color: var(--str-video__background-color1);
+  border-radius: var(--str-video__border-radius-xs);
+  padding: 0.75rem;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  h3 {
+    margin: unset;
+  }
+
+  .str-video__call-stats__card-container {
+    --gap: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    gap: var(--gap);
+  }
+
+  .str-video__call-stats__card {
+    background-color: var(--str-video__background-color2);
+    border-radius: var(--str-video__border-radius-xs);
+    width: calc(50% - calc(var(--gap) / 2));
+    padding: 0.5rem 0.5rem;
+
+    .str-video__call-stats__card_label {
+      color: var(--str-video__text-color2);
+      font-size: 0.5625rem;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+
+    .str-video__call-stats__card_value {
+      font-size: 1.0625rem;
+      font-weight: 500;
+      line-height: 1.25rem;
+    }
+  }
+
+  .str-video__call-stats-line-chart-container {
+    height: 15vh;
+  }
+}

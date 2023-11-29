@@ -1,0 +1,227 @@
+---
+id: camera-and-microphone
+title: Camera & Microphone
+description: Docs on the media manager
+---
+
+Handling audio and video devices in a web application means working with [`MediaStream`](https://developer.mozilla.org/en-US/docs/Web/API/MediaStream),
+[`MediaDeviceInfo`](https://developer.mozilla.org/en-US/docs/Web/API/MediaDeviceInfo) and other WebRTC API objects.
+We did our best to hide this complexity through a set of APIs exposed as through a `call` instance, or a set of utility hooks.
+
+## Camera management
+
+### Call settings
+
+The default state of the camera is determined by the [call type](../../guides/configuring-call-types/) settings:
+
+```tsx
+import { useCallStateHooks } from '@stream-io/video-react-sdk';
+
+const { useCallSettings } = useCallStateHooks();
+const settings = useCallSettings();
+
+console.log(settings?.video.camera_default_on);
+```
+
+### Start-stop camera
+
+```tsx
+import { useCallStateHooks } from '@stream-io/video-react-sdk';
+
+const { useCameraState } = useCallStateHooks();
+const { camera, isMute } = useCameraState();
+
+console.log(`Camera is ${isMute ? 'off' : 'on'}`);
+await camera.toggle();
+
+// or, alternatively
+await camera.enable();
+await camera.disable();
+```
+
+### List and select devices
+
+```typescript
+import { useCallStateHooks } from '@stream-io/video-react-sdk';
+
+const { useCameraState } = useCallStateHooks();
+const { camera, selectedDevice, devices } = useCameraState();
+
+console.log('current camera id:', selectedDevice);
+console.log('available devices:', devices);
+
+const preferredDevice = devices.find((d) => d.label === 'My Camera');
+await camera.select(preferredDevice.deviceId);
+```
+
+### Camera permissions
+
+```typescript
+import { useCallStateHooks } from '@stream-io/video-react-sdk';
+
+const { useCameraState } = useCallStateHooks();
+const { hasBrowserPermission } = useCameraState();
+
+if (hasBrowserPermission) {
+  console.log('User has granted camera permissions!');
+} else {
+  console.log('User has denied or not granted camera permissions!');
+}
+```
+
+### Lobby preview
+
+Here is how to set up a video preview displayed before joining the call:
+
+```tsx
+import { useCallStateHooks } from '@stream-io/video-react-sdk';
+
+const { useCameraState } = useCallStateHooks();
+const { camera, mediaStream } = useCameraState();
+
+// will turn on the camera
+await camera.enable();
+
+// play the video preview
+<video srcObject={mediaStream} autoPlay muted />;
+```
+
+Alternatively, you can use the SDK-provided [`VideoPreview`](../../ui-components/participants/video-preview) component.
+
+## Microphone management
+
+### Call settings
+
+The default state of the microphone is determined by the call settings:
+
+```tsx
+import { useCallStateHooks } from '@stream-io/video-react-sdk';
+
+const { useCallSettings } = useCallStateHooks();
+const settings = useCallSettings();
+
+console.log(settings?.audio.mic_default_on);
+```
+
+### Start-stop microphone
+
+```tsx
+import { useCallStateHooks } from '@stream-io/video-react-sdk';
+
+const { useMicrophoneState } = useCallStateHooks();
+const { microphone, isMute } = useMicrophoneState();
+
+console.log(`Microphone is ${isMute ? 'off' : 'on'}`);
+await microphone.toggle();
+
+// or, alternatively
+await microphone.enable();
+await microphone.disable();
+```
+
+### List and select devices
+
+```typescript
+import { useCallStateHooks } from '@stream-io/video-react-sdk';
+
+const { useMicrophoneState } = useCallStateHooks();
+const { microphone, selectedDevice, devices } = useMicrophoneState();
+
+console.log('current mic-id:', selectedDevice);
+console.log('available devices:', devices);
+
+const preferredDevice = devices.find((d) => d.label === 'My Mic');
+await microphone.select(preferredDevice.deviceId);
+```
+
+### Microphone permissions
+
+```typescript
+import { useCallStateHooks } from '@stream-io/video-react-sdk';
+
+const { useMicrophoneState } = useCallStateHooks();
+const { hasBrowserPermission } = useMicrophoneState();
+
+if (hasBrowserPermission) {
+  console.log('User has granted microphone permissions!');
+} else {
+  console.log('User has denied or not granted microphone permissions!');
+}
+```
+
+### Speaking while muted detection
+
+Our SDK provides a mechanism that can detect whether the user started to speak while being muted.
+Through this mechanism, you can display a notification to the user, or apply any custom logic.
+
+```tsx
+import { useCallStateHooks } from '@stream-io/video-react-sdk';
+
+const { useMicrophoneState } = useCallStateHooks();
+const { isSpeakingWhileMuted } = useMicrophoneState();
+
+if (isSpeakingWhileMuted) {
+  // your custom logic comes here
+  console.log('You are speaking while muted!');
+}
+```
+
+## Speaker management
+
+### Browser support
+
+Selecting an audio output device for the call [isn't supported by all browsers](https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/sinkId),
+and this is how you can check the availability:
+
+```typescript
+import { useCallStateHooks } from '@stream-io/video-react-sdk';
+
+const { useSpeakerState } = useCallStateHooks();
+const { isDeviceSelectionSupported } = useSpeakerState();
+
+console.log('is speaker selection supported:', isDeviceSelectionSupported);
+```
+
+### List and select devices
+
+```typescript
+import { useCallStateHooks } from '@stream-io/video-react-sdk';
+
+const { useSpeakerState } = useCallStateHooks();
+const { speaker, selectedDevice, devices } = useSpeakerState();
+
+console.log('current mic-id:', selectedDevice);
+console.log('available devices:', devices);
+
+const preferredDevice = devices.find((d) => d.label === 'My Speakers');
+await speaker.select(preferredDevice.deviceId);
+```
+
+## Persisting user's device preferences
+
+For user's convenience, you might want to persist the user's choices for the camera, microphone and speaker devices across sessions.
+
+There are multiple ways on how to achieve this, and our SDK provides one utility hook that can help you with this by utilizing `localStorage` under the hood.
+
+```tsx
+import {
+  StreamVideo,
+  StreamCall,
+  usePersistedDevicePreferences,
+} from '@stream-io/video-react-sdk';
+
+export const MyApp = () => {
+  return (
+    <StreamVideo client={client}>
+      <StreamCall call={call}>
+        <MyCallShell />
+      </StreamCall>
+    </StreamVideo>
+  );
+};
+
+const MyCallShell = () => {
+  usePersistedDevicePreferences('my-custom-preference-key');
+  return <div>...</div>;
+};
+```

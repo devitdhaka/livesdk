@@ -1,0 +1,305 @@
+---
+id: camera-and-microphone
+title: Camera & Microphone
+description: Managing audio and video
+---
+
+If you want to see the device management API in action, you can check out [the sample app](https://github.com/GetStream/stream-video-js/tree/main/sample-apps/client/ts-quickstart).
+
+## Camera management
+
+### Start-stop camera
+
+```typescript
+call.camera.toggle();
+
+// or
+call.camera.enable();
+call.camera.disable();
+```
+
+Here is how you can access the status:
+
+```typescript
+call.camera.state.status; // enabled, disabled or undefined
+call.camera.state.status$.subscribe(console.log); // Reactive value for status, you can subscribe to changes
+```
+
+The initial status of the camera is `undefined`. If you don't change the initial status, the default backend settings will be applied once the participant joins the call.
+
+If you're building a lobby screen, this is how you can apply the backend settings:
+
+```typescript
+await call.get();
+const defaultCameraStatus = call.state.settings?.video.camera_default_on;
+defaultCameraStatus ? call.camera.enable() : call.camera.disable();
+```
+
+### List and select devices
+
+```typescript
+// List devices
+// The error handler is called if the user denies permission to use camera
+call.camera
+  .listDevices()
+  .subscribe({ next: console.log, error: console.error });
+
+// Select device
+call.camera.select('device Id');
+```
+
+Here is how you can access the selected device:
+
+```typescript
+call.camera.state.selectedDevice; // currently selected camera
+call.camera.state.selectedDevice$.subscribe(console.log); // Reactive value for selected device, you can subscribe to changes
+```
+
+### Camera permissions
+
+In a browser, you can use the following API to check whether the user has granted permission to access the connected cameras:
+
+```typescript
+call.camera.state.hasBrowserPermission$.subscribe((value) => {
+  if (value) {
+    // User has granted permission
+  } else {
+    // User has denied or not yet granted permission
+  }
+});
+```
+
+### Camera direction
+
+On mobile devices it's useful if users can switch between the front and back cameras:
+
+```typescript
+await call.camera.selectDirection('front'); // or back
+
+// Flip camera
+await call.camera.flip();
+```
+
+This is how you can access the camera direction:
+
+```typescript
+call.camera.state.direction; // front, back or undefined
+call.camera.state.direction$.subscribe(console.log); // Reactive value for direction, you can subscribe to changes
+```
+
+The initial direction of the camera is `undefined`. If you don't change the initial status, the default backend settings will be applied once the participant joins the call.
+
+If you're building a lobby screen, this is how you can apply the backend settings:
+
+```typescript
+await call.get();
+// fallback in case no backend setting
+let defaultDirection: CameraDirection = 'front';
+const backendSetting = call.state.settings?.video.camera_facing;
+if (backendSetting) {
+  defaultDirection = backendSetting === 'front' ? 'front' : 'back';
+}
+call.camera.selectDirection(defaultDirection);
+```
+
+### Render video
+
+#### In call
+
+Follow our [Playing Video and Audio guide](../../guides/playing-video-and-audio/).
+
+#### Lobby preview
+
+This is how you can show a preview video before joining the call:
+
+```typescript
+const call = client.call('default', '123');
+
+await call.camera.enable();
+const videoEl = document.createElement('video');
+videoEl.playsInline = true;
+videoEl.muted = true;
+videoEl.autoplay = true;
+
+if (videoEl.srcObject !== call.camera.state.mediaStream) {
+  videoEl.srcObject = call.camera.state.mediaStream || null;
+  if (videoEl.srcObject) {
+    videoEl.play();
+  }
+}
+```
+
+## Microphone management
+
+### Start-stop microphone
+
+```typescript
+call.microphone.toggle();
+
+// or
+call.microphone.enable();
+call.microphone.disable();
+```
+
+This is how you can access the microphone status:
+
+```typescript
+call.microphone.state.status; // enabled, disabled or undefined
+call.microphone.state.status$.subscribe(console.log); // Reactive value for status, you can subscribe to changes
+```
+
+The initial status of the microphone is `undefined`. If you don't change the initial status, the default backend settings will be applied once the participant joins the call.
+
+If you're building a lobby screen, this is how you can apply the backend settings:
+
+```typescript
+await call.get();
+const defaultMicStatus = call.state.settings?.audio.mic_default_on;
+if (defaultMicStatus) {
+  call.microphone.enable();
+} else {
+  call.microphone.disable();
+}
+```
+
+### List and select devices
+
+```typescript
+// List devices
+// The error handler is called if the user denies permission to use microphone
+call.microphone
+  .listDevices()
+  .subscribe({ next: console.log, error: console.error });
+
+// Select device
+call.microphone.select('device Id');
+```
+
+This is how you can access the selected device:
+
+```typescript
+call.microphone.state.selectedDevice; // currently selected microphone
+call.microphone.state.selectedDevice$.subscribe(console.log); // Reactive value for selected device, you can subscribe to changes
+```
+
+### Microphone permissions
+
+In a browser, you can use the following API to check whether the user has granted permission to access the connected microphones:
+
+```typescript
+call.microphone.state.hasBrowserPermission$.subscribe((value) => {
+  if (value) {
+    // User has granted permission
+  } else {
+    // User has denied or not yet granted permission
+  }
+});
+```
+
+### Play audio
+
+#### In call
+
+Follow our [Playing Video and Audio guide](../../guides/playing-video-and-audio/).
+
+#### Lobby preview
+
+On lobby screens a common UX pattern is to show a visual indicator of the detected audio levels coming from the selected microphone. The client exposes the `createSoundDetector` utility method to help implement this functionality. Here is an example of how you can do that:
+
+```html
+<progress id="volume" max="100" min="0"></progress>
+```
+
+```typescript
+import { createSoundDetector } from '@stream-io/video-client';
+
+let cleanup: Function | undefined;
+call.microphone.state.mediaStream$.subscribe(async (mediaStream) => {
+  const progressBar = document.getElementById('volume') as HTMLProgressElement;
+  if (mediaStream) {
+    cleanup = createSoundDetector(
+      mediaStream,
+      (event) => {
+        progressBar.value = event.audioLevel;
+      },
+      { detectionFrequencyInMs: 100 },
+    );
+  } else {
+    await cleanup?.();
+    progressBar.value = 0;
+  }
+});
+```
+
+### Speaking while muted notification
+
+When the microphone is disabled, the client will automatically start monitoring audio levels, to detect if the user is speaking.
+
+This is how you can subscribe to these notifications:
+
+```typescript
+call.microphone.state.speakingWhileMuted; // current value
+call.microphone.state.speakingWhileMuted$.subscribe((isSpeaking) => {
+  if (isSpeaking) {
+    console.log(`You're muted, unmute yourself to speak`);
+  }
+}); // Reactive value
+```
+
+The notification is automatically disabled if the user doesn't have the permission to send audio.
+
+## Speaker management
+
+### List and select devices
+
+#### Browser support
+
+Selecting audio output device [isn't supported by all browsers](https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/sinkId), this is how you can check the availability:
+
+```typescript
+call.speaker.state.isDeviceSelectionSupported;
+```
+
+```typescript
+// List devices
+// The error handler is called if the user denies permission to use audio
+call.speaker.listDevices().subscribe({
+  next: (devices) => console.log(devices),
+  error: (err) => console.error(err),
+});
+
+// Select device
+call.speaker.select('device Id');
+```
+
+Device id can also be an empty string, that means to use the system's default audio output.
+
+Here is how you can access the selected device:
+
+```typescript
+call.speaker.state.selectedDevice; // currently selected audio output
+// Reactive value for selected device, you can subscribe to changes
+call.speaker.state.selectedDevice$.subscribe((selectedDevice) => {
+  console.log(selectedDevice);
+});
+```
+
+### Set volume
+
+Volume has to be a number between 0 and 1. 0 means mute the audio output.
+
+```typescript
+call.speaker.setVolume(0.5);
+```
+
+The default system value is 1.
+
+Here is how you can access the selected device:
+
+```typescript
+call.speaker.state.volume; // current volume
+// Reactive value for volume, you can subscribe to changes
+call.speaker.state.volume$.subscribe((volume) => {
+  console.log(volume);
+});
+```

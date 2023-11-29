@@ -1,0 +1,55 @@
+{
+  "name": "@stream-io/video-react-sdk",
+  "version": "0.4.13",
+  "packageManager": "yarn@3.2.4",
+  "main": "./dist/index.cjs.js",
+  "module": "./dist/index.es.js",
+  "types": "./dist/index.d.ts",
+  "license": "See license in LICENSE",
+  "scripts": {
+    "clean": "rimraf dist",
+    "start": "rollup -c -w",
+    "build": "NODE_ENV=production rollup -c && yarn copy-css",
+    "copy-css": "cp -R ../../node_modules/@stream-io/video-styling/dist/* dist/",
+    "start:docs": "npx stream-chat-docusaurus -s"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GetStream/stream-video-js.git",
+    "directory": "packages/react-sdk"
+  },
+  "files": [
+    "dist",
+    "src",
+    "index.ts",
+    "package.json",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "dependencies": {
+    "@floating-ui/react": "^0.26.1",
+    "@nivo/core": "^0.80.0",
+    "@nivo/line": "^0.80.0",
+    "@stream-io/video-client": "workspace:^",
+    "@stream-io/video-react-bindings": "workspace:^",
+    "clsx": "^2.0.0",
+    "prop-types": "^15.8.1"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@rollup/plugin-json": "^6.0.1",
+    "@rollup/plugin-replace": "^5.0.4",
+    "@rollup/plugin-typescript": "^11.1.5",
+    "@stream-io/video-styling": "workspace:^",
+    "@types/prop-types": "^15.7.8",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "rimraf": "^5.0.5",
+    "rollup": "^3.29.4",
+    "typescript": "^5.2.2"
+  }
+}
